@@ -35,7 +35,7 @@ jobs:
       - name: Export all secrets to env vars
         uses: oNaiPs/secrets-to-env-action@v1
         with:
-          secrets: ${{ toJSON(secrets)
+          secrets: ${{ toJSON(secrets) }}
           
       - name: Run Time Adder Script # 步骤4: 运行你的 Python 脚本
         run: python main.py
