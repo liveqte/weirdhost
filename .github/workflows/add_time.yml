@@ -31,15 +31,13 @@ jobs:
         run: |
           pip install playwright
           playwright install --with-deps chromium # 安装 Chromium 浏览器及其运行所需的所有依赖
-
+          
+      - name: Export all secrets to env vars
+        uses: oNaiPs/secrets-to-env-action@v1
+        with:
+          secrets: ${{ toJSON(secrets)
+          
       - name: Run Time Adder Script # 步骤4: 运行你的 Python 脚本
-        env:
-          # 从 GitHub Secrets 读取环境变量，这些值绝不会在日志中明文显示
-          # 优先使用 Cookie 登录
-          REMEMBER_WEB_COOKIE: ${{ secrets.REMEMBER_WEB_COOKIE }}
-          # 如果 Cookie 失效或未设置，则使用下面的邮箱和密码
-          PTERODACTYL_EMAIL: ${{ secrets.PTERODACTYL_EMAIL }}
-          PTERODACTYL_PASSWORD: ${{ secrets.PTERODACTYL_PASSWORD }}
         run: python main.py
 
       - name: Upload error artifacts # 步骤5: 如果脚本运行失败，上传截图用于调试
