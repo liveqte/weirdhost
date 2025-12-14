@@ -135,7 +135,8 @@ def add_server_time(server_url="https://hub.weirdhost.xyz/server/7b40aae4"):
 
 if __name__ == "__main__":
     print("开始执行添加服务器时间任务...")
-    success = add_server_time()
+    server_url=os.getenv('WEIRDHOST_SERVER_URLS')
+    success = add_server_time(server_url)
     if success:
         print("任务执行成功。")
         exit(0)
