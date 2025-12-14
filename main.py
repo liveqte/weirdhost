@@ -12,7 +12,8 @@ def add_server_time(server_url="https://hub.weirdhost.xyz/server/7b40aae4"):
     remember_web_cookie = os.environ.get('REMEMBER_WEB_COOKIE')
     pterodactyl_email = os.environ.get('PTERODACTYL_EMAIL')
     pterodactyl_password = os.environ.get('PTERODACTYL_PASSWORD')
-
+    server_url=os.environ.get('WEIRDHOST_SERVER_URLS')
+    
     # 检查是否提供了任何登录凭据
     if not (remember_web_cookie or (pterodactyl_email and pterodactyl_password)):
         print("错误: 缺少登录凭据。请设置 REMEMBER_WEB_COOKIE 或 PTERODACTYL_EMAIL 和 PTERODACTYL_PASSWORD 环境变量。")
@@ -135,8 +136,7 @@ def add_server_time(server_url="https://hub.weirdhost.xyz/server/7b40aae4"):
 
 if __name__ == "__main__":
     print("开始执行添加服务器时间任务...")
-    url=os.environ.get('WEIRDHOST_SERVER_URLS')
-    success = add_server_time(server_url=url)
+    success = add_server_time()
     if success:
         print("任务执行成功。")
         exit(0)
