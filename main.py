@@ -1,15 +1,15 @@
 import os
 import time
 from playwright.sync_api import sync_playwright, Cookie, TimeoutError as PlaywrightTimeoutError
-import asyncio
 from typing import Optional
 import random
 
-async def solve_turnstile(page, logger=None):
+def solve_turnstile_sync(page, logger=None):
     """
-    使用 Playwright 解决 Cloudflare Turnstile 验证
+    同步版本 - 使用 Playwright 解决 Cloudflare Turnstile 验证
+    
     Args:
-        page: Playwright page 对象
+        page: Playwright 同步版本的 page 对象
         logger: 日志记录器，如果为 None 则使用 print
     """
     
@@ -29,17 +29,17 @@ async def solve_turnstile(page, logger=None):
         log(f"✅ 找到元素: {name}", "debug")
         return True
     
-    async def wait_for(min_seconds, max_seconds=None):
+    def wait_for(min_seconds, max_seconds=None):
         if max_seconds:
             wait_time = random.uniform(min_seconds, max_seconds)
         else:
             wait_time = min_seconds
         log(f"等待 {wait_time:.1f} 秒", "debug")
-        await asyncio.sleep(wait_time)
+        time.sleep(wait_time)
     
-    async def capture_screenshot(filename="screenshot.png"):
+    def capture_screenshot(filename="screenshot.png"):
         try:
-            await page.screenshot(path=filename, full_page=True)
+            page.screenshot(path=filename, full_page=True)
             log(f"截图保存为: {filename}", "debug")
         except Exception as e:
             log(f"截图失败: {str(e)}", "debug")
@@ -47,7 +47,7 @@ async def solve_turnstile(page, logger=None):
     log("等待 Turnstile 验证", "info")
     
     # 等待随机时间
-    await wait_for(15, 30)
+    wait_for(15, 30)
     
     # 查找 iframe - Cloudflare Turnstile iframe 通常有特定的属性
     try:
@@ -57,17 +57,17 @@ async def solve_turnstile(page, logger=None):
         # 等待 iframe 出现
         log("查找 Cloudflare Turnstile iframe", "debug")
         
-        # 等待页面加载完成
-        await page.wait_for_load_state("networkidle")
+        # 等待页面加载完成 - 同步版本使用 wait_for_load_state()
+        page.wait_for_load_state("networkidle")
         
-        # 查找所有可能的 iframe
-        iframes = await page.query_selector_all("iframe")
+        # 查找所有可能的 iframe - 同步版本使用 query_selector_all()
+        iframes = page.query_selector_all("iframe")
         log(f"找到 {len(iframes)} 个 iframe", "debug")
         
         target_iframe = None
         for iframe in iframes:
-            src = await iframe.get_attribute("src") or ""
-            title = await iframe.get_attribute("title") or ""
+            src = iframe.get_attribute("src") or ""
+            title = iframe.get_attribute("title") or ""
             if "cloudflare" in src.lower() or "cloudflare" in title.lower() or "challenge" in title.lower():
                 target_iframe = iframe
                 log(f"找到目标 iframe: src={src}, title={title}", "debug")
@@ -75,16 +75,15 @@ async def solve_turnstile(page, logger=None):
         
         if not target_iframe:
             # 尝试其他选择器
-            target_iframe = await page.query_selector(iframe_selector)
+            target_iframe = page.query_selector(iframe_selector)
         
         check_element("Cloudflare Turnstile iframe", target_iframe)
         
-        # 切换到 iframe 上下文
-        frame = await target_iframe.content_frame()
+        # 切换到 iframe 上下文 - 同步版本
+        frame = target_iframe.content_frame()
         check_element("iframe content frame", frame)
         
         # 在 iframe 内查找 checkbox
-        # Cloudflare Turnstile 的 checkbox 通常有特定的选择器
         checkbox_selectors = [
             'input[type="checkbox"]',
             '.challenge-container input',
@@ -96,21 +95,21 @@ async def solve_turnstile(page, logger=None):
         
         checkbox = None
         for selector in checkbox_selectors:
-            checkbox = await frame.query_selector(selector)
+            checkbox = frame.query_selector(selector)
             if checkbox:
                 log(f"使用选择器找到 checkbox: {selector}", "debug")
                 break
         
         # 如果没找到，尝试通过 XPath 查找
         if not checkbox:
-            checkbox = await frame.query_selector('xpath=//label/input')
+            checkbox = frame.query_selector('xpath=//label/input')
             if checkbox:
                 log("使用 XPath 找到 checkbox", "debug")
         
         check_element("Turnstile checkbox", checkbox)
         
-        # 获取复选框位置和大小
-        box = await checkbox.bounding_box()
+        # 获取复选框位置和大小 - 同步版本
+        box = checkbox.bounding_box()
         if box:
             # 计算点击位置（稍微偏移中心）
             x = box['x'] + box['width'] / 2 + random.randint(5, 8)
@@ -118,22 +117,22 @@ async def solve_turnstile(page, logger=None):
             
             log(f"点击位置: x={x}, y={y}", "debug")
             
-            # 点击复选框
-            await page.mouse.click(x, y)
+            # 点击复选框 - 同步版本
+            page.mouse.click(x, y)
             log("✅ 已点击 Turnstile 验证框", "info")
         else:
             # 如果无法获取边界框，直接点击元素
-            await checkbox.click()
+            checkbox.click()
             log("✅ 已直接点击 Turnstile 验证框", "info")
         
         # 等待验证完成
-        await wait_for(10, 12)
+        wait_for(10, 12)
         
         # 检查是否验证成功
-        await wait_for(3, 5)
+        wait_for(3, 5)
         
         # 尝试截图
-        await capture_screenshot("cf_result.png")
+        capture_screenshot("cf_result.png")
         
         log("Turnstile 验证处理完成", "info")
         return True
@@ -143,11 +142,12 @@ async def solve_turnstile(page, logger=None):
         
         # 出错时截图
         try:
-            await capture_screenshot("cf_error.png")
+            capture_screenshot("cf_error.png")
         except:
             pass
         return False
-        
+
+
 def add_server_time():
     """
     尝试登录 hub.weirdhost.xyz 并点击 "시간 추가" 按钮。
@@ -258,7 +258,7 @@ def add_server_time():
                     page.screenshot(path="server_page_nav_fail.png")
                     browser.close()
                     return False
-            success = asyncio.run(solve_turnstile(page))
+            success = solve_turnstile_sync(page)
             if success:
                 print("验证成功!")
             else:
