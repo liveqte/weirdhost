@@ -2,6 +2,7 @@ import os
 import time
 from playwright.sync_api import sync_playwright, Cookie, TimeoutError as PlaywrightTimeoutError
 from typing import Optional
+import re
 import random
 
 def solve_turnstile_sync(page, logger=None):
@@ -146,7 +147,19 @@ def solve_turnstile_sync(page, logger=None):
         except:
             pass
         return False
-
+        
+def is_valid_proxy(proxy: str) -> bool:
+    """
+    校验代理格式是否合法，例如:
+    socks5://domain.com:1080
+    http://1.2.3.4:8080
+    """
+    pattern = re.compile(
+        r'^(http|https|socks4|socks5)://'   # 协议
+        r'([a-zA-Z0-9.-]+|\d{1,3}(\.\d{1,3}){3})'  # 域名或 IP
+        r':(\d+)$'  # 端口
+    )
+    return bool(pattern.match(proxy))
 
 def add_server_time():
     """
@@ -168,12 +181,14 @@ def add_server_time():
 
     with sync_playwright() as p:
         # 在 GitHub Actions 中，使用 headless 无头模式运行
+        if not is_valid_proxy(chrome_proxy):
+            raise ValueError(f"代理格式不合法: {chrome_proxy}")
+        
         browser = p.chromium.launch(
             headless=True,
-            proxy={
-                "server": chrome_proxy
-            }
+            proxy={"server": chrome_proxy}
         )
+        
         page = browser.new_page()
         # 增加默认超时时间到90秒，以应对网络波动和慢加载
         page.set_default_timeout(90000)
