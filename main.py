@@ -258,7 +258,7 @@ def add_server_time():
                     page.screenshot(path="server_page_nav_fail.png")
                     browser.close()
                     return False
-            success = await solve_turnstile(page)
+            success = asyncio.run(solve_turnstile(page))
             if success:
                 print("验证成功!")
             else:
