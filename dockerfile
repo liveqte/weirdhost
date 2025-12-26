@@ -22,8 +22,4 @@ RUN pip3 install playwright && \
 WORKDIR /app
 COPY . /app
 
-# 启动虚拟桌面 + openbox + python
-CMD Xvfb :99 -screen 0 1280x720x24 & \
-    export DISPLAY=:99 && \
-    openbox-session & \
-    python3 main.py
+CMD ["xvfb-run", "--server-args=-screen 0 1280x720x24", "python3", "main.py"]
