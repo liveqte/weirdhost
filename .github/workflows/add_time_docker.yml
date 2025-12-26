@@ -22,14 +22,13 @@ jobs:
 
       - name: Run container
         run: |
-          for name in $(compgen -A variable | grep '^SECRET_'); do
-            envs="$envs -e $name=${!name}"
-          done
-      
           docker run --rm \
-            $envs \
+            -e CHROME_PROXY="${{ secrets.CHROME_PROXY }}" \
+            -e REMEMBER_WEB_COOKIE="${{ secrets.REMEMBER_WEB_COOKIE }}" \
+            -e WEIRDHOST_SERVER_URLS="${{ secrets.WEIRDHOST_SERVER_URLS }}" \
             -v ${{ github.workspace }}:/app \
             time-adder
+
       - name: Upload error artifacts # 步骤5: 如果脚本运行失败，上传截图用于调试
         if: failure() # 仅在上一步失败时运行
         uses: actions/upload-artifact@v4
