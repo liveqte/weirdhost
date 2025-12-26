@@ -1,21 +1,24 @@
 #!/bin/bash
 
-# 1. 启动 Xvfb (虚拟显示)
-# :99 表示显示端口，-ac 允许所有客户端连接
-Xvfb :99 -screen 0 1280x720x24 -ac &
+# 1. 启动 Xvfb
+rm -f /tmp/.X99-lock
+Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
+
+# 等待桌面就绪
+until xset -q -display :99 > /dev/null 2>&1; do
+    sleep 0.5
+done
+
 export DISPLAY=:99
 
-# 2. 等待 Xvfb 准备就绪
-sleep 2
+# 2. 核心修复：启动 D-Bus 临时会话并导出环境变量
+# dbus-launch 会启动一个 dbus-daemon 并返回相关的环境变量
+eval $(dbus-launch --sh-syntax)
 
-# 3. 启动 Openbox (窗口管理器)
-# 很多有界面的程序需要它来处理窗口层级和焦点
-openbox-session &
+# 3. 启动窗口管理器
+openbox &
 
-# 4. 启动 x11vnc (可选：方便你远程查看桌面)
-# 如果不需要监控界面，可以删掉这行
-# x11vnc -display :99 -forever -nopw -rfbport 5900 &
-
-# 5. 运行你的 Python 程序
-# 使用 exec 确保 Python 成为容器的主进程（PID 1），方便接收退出信号
+# 4. 运行 Python 程序
+# 此时环境变量中已经有了 DBUS_SESSION_BUS_ADDRESS
+echo "D-Bus 地址: $DBUS_SESSION_BUS_ADDRESS"
 exec python3 main.py
