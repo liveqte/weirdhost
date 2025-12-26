@@ -259,10 +259,11 @@ def add_server_time():
                     browser.close()
                     return False
             success = await solve_turnstile(page)
-                if success:
-                    print("验证成功!")
-                else:
-                    print("验证失败!")
+            if success:
+                print("验证成功!")
+            else:
+                print("验证失败!")
+                exit(1)
             # --- 核心操作：查找并点击 "시간 추가" 按钮 ---
             add_button_selector = 'button:has-text("시간 추가")' # 已更新为新的按钮文本
             print(f"正在查找并等待 '{add_button_selector}' 按钮...")
