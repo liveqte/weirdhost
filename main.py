@@ -190,11 +190,14 @@ def add_server_time():
         )
         
         context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                       "AppleWebKit/537.36 (KHTML, like Gecko) "
-                       "Chrome/120.0.0.0 Safari/537.36"
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36 "
+                "Edg/120.0.0.0"
+            )
         )
-        
+
         page = context.new_page()
         # 增加默认超时时间到90秒，以应对网络波动和慢加载
         page.set_default_timeout(90000)
