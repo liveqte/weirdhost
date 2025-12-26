@@ -1,0 +1,50 @@
+name: 自动增加服务器时间（Docker版）
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '48 5 * * *'
+
+jobs:
+  add_time:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t time-adder .
+
+      - name: Run container
+        run: |
+          docker run --rm \
+            -e $(printf "%s " $(compgen -A variable | grep '^SECRET_')) \
+            -v ${{ github.workspace }}:/app \
+            time-adder
+
+      - name: Commit time.txt to repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ ! -f time.txt ]; then
+            echo "首次生成时间：$(date +'%Y-%m-%d %H:%M:%S')" > time.txt
+          else
+            echo "$(date +'%Y-%m-%d %H:%M:%S')" > time.txt
+          fi
+
+          git add time.txt
+
+          if git diff --cached --quiet; then
+            echo "无变化，无需提交"
+          else
+            git commit -m "更新时间文件: $(date +'%Y-%m-%d %H:%M:%S')"
+            git push origin HEAD:main
+          fi
