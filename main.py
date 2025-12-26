@@ -168,7 +168,7 @@ def add_server_time():
 
     with sync_playwright() as p:
         # 在 GitHub Actions 中，使用 headless 无头模式运行
-        browser = await p.chromium.launch(
+        browser = p.chromium.launch(
             headless=True,
             proxy={
                 "server": chrome_proxy
