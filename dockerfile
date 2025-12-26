@@ -2,6 +2,7 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# 安装桌面环境 + Xvfb + Python
 RUN apt update && apt install -y \
     openbox \
     xvfb \
@@ -14,15 +15,15 @@ RUN apt update && apt install -y \
     sudo \
     && apt clean
 
-# 安装 Playwright 及 Chromium
+# 安装 Playwright
 RUN pip3 install playwright && \
     playwright install --with-deps chromium
 
-# 创建工作目录
 WORKDIR /app
-
-# 将你的代码复制进镜像
 COPY . /app
 
-# 默认启动脚本
-CMD ["python3", "main.py"]
+# 启动虚拟桌面 + openbox + python
+CMD Xvfb :99 -screen 0 1280x720x24 & \
+    export DISPLAY=:99 && \
+    openbox-session & \
+    python3 main.py
