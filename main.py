@@ -49,7 +49,7 @@ def solve_turnstile_sync(page, logger=None):
     
     # 等待随机时间
     wait_for(15, 30)
-    
+    capture_screenshot("cf_begin.png")
     # 查找 iframe - Cloudflare Turnstile iframe 通常有特定的属性
     try:
         # 方法1: 查找包含 Cloudflare Turnstile 的 iframe
