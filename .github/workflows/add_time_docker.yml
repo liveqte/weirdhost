@@ -22,10 +22,21 @@ jobs:
 
       - name: Run container
         run: |
+          for name in $(compgen -A variable | grep '^SECRET_'); do
+            envs="$envs -e $name=${!name}"
+          done
+      
           docker run --rm \
+            $envs \
             -v ${{ github.workspace }}:/app \
             time-adder
-
+      - name: Upload error artifacts # 步骤5: 如果脚本运行失败，上传截图用于调试
+        if: failure() # 仅在上一步失败时运行
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-screenshots # 上传后的文件包名称
+          path: "*.png" # 上传所有以 .png 结尾的文件
+          
       - name: Commit time.txt to repo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
