@@ -1,24 +1,24 @@
 #!/bin/bash
 
-# 1. 启动 Xvfb
+# 1. 强制清理锁文件 (防止重复启动失败)
 rm -f /tmp/.X99-lock
-Xvfb :99 -screen 0 1280x720x24 -ac +extension GLX +render -noreset &
 
-# 等待桌面就绪
-until xset -q -display :99 > /dev/null 2>&1; do
-    sleep 0.5
-done
-
+# 2. 后台启动所有桌面组件，全部使用 & 分离进程
+# 这里的顺序不影响启动，因为它们都是异步的
+Xvfb :99 -screen 0 1280x720x24 -ac &
 export DISPLAY=:99
 
-# 2. 核心修复：启动 D-Bus 临时会话并导出环境变量
-# dbus-launch 会启动一个 dbus-daemon 并返回相关的环境变量
-eval $(dbus-launch --sh-syntax)
+# 启动 D-Bus (不使用 eval 阻塞，直接后台运行)
+dbus-daemon --session --address=unix:path=/tmp/dbus-session --fork --print-address > /tmp/dbus-addr &
+export DBUS_SESSION_BUS_ADDRESS="unix:path=/tmp/dbus-session"
 
-# 3. 启动窗口管理器
+# 启动窗口管理器
 openbox &
 
-# 4. 运行 Python 程序
-# 此时环境变量中已经有了 DBUS_SESSION_BUS_ADDRESS
-echo "D-Bus 地址: $DBUS_SESSION_BUS_ADDRESS"
+echo "正在等待桌面环境初始化 (sleep 5s)..."
+sleep 5
+echo "环境准备就绪，正在启动 Python 程序。"
+
+# 3. 立即启动 Python (前台运行，作为容器主进程)
+echo "所有环境已异步启动，正在进入 Python..."
 exec python3 main.py
