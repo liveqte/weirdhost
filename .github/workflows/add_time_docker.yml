@@ -23,7 +23,6 @@ jobs:
       - name: Run container
         run: |
           docker run --rm \
-            -e $(printf "%s " $(compgen -A variable | grep '^SECRET_')) \
             -v ${{ github.workspace }}:/app \
             time-adder
 
