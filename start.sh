@@ -21,4 +21,4 @@ echo "环境准备就绪，正在启动 Python 程序。"
 
 # 3. 立即启动 Python (前台运行，作为容器主进程)
 echo "所有环境已异步启动，正在进入 Python..."
-exec python3 testip.py
+exec python3 main.py
