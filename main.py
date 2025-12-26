@@ -194,7 +194,9 @@ def add_server_time():
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/605.1.15 (KHTML, like Gecko) "
                 "Version/17.0 Safari/605.1.15"
-            )
+            ),
+            viewport={"width": 1366, "height": 768},
+            timezone_id="America/Los_Angeles"
         )
         
         page = context.new_page()
