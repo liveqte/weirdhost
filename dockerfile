@@ -13,6 +13,8 @@ RUN apt update && apt install -y \
     curl \
     wget \
     sudo \
+    menu \
+    python3-xdg \
     && apt clean
 
 # 安装 Playwright
