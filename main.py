@@ -180,12 +180,12 @@ def add_server_time():
         return False
 
     with sync_playwright() as p:
-        # 在 GitHub Actions 中，使用 headless 无头模式运行
+
         if not is_valid_proxy(chrome_proxy):
             raise ValueError(f"代理格式不合法: {chrome_proxy}")
         
         browser = p.chromium.launch(
-            headless=True,
+            headless=False,
             proxy={"server": chrome_proxy}
         )
         
