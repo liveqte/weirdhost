@@ -23,6 +23,7 @@ jobs:
       - name: Run container
         run: |
           docker run --rm \
+            --shm-size=2g \
             -e CHROME_PROXY="${{ secrets.CHROME_PROXY }}" \
             -e REMEMBER_WEB_COOKIE="${{ secrets.REMEMBER_WEB_COOKIE }}" \
             -e WEIRDHOST_SERVER_URLS="${{ secrets.WEIRDHOST_SERVER_URLS }}" \
