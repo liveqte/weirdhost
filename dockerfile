@@ -22,4 +22,6 @@ RUN pip3 install playwright && \
 WORKDIR /app
 COPY . /app
 
-CMD ["xvfb-run", "--server-args=-screen 0 1280x720x24", "python3", "main.py"]
+RUN chmod +x /app/start.sh
+
+CMD ["/app/start.sh"]
