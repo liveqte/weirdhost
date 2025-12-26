@@ -1,7 +1,153 @@
 import os
 import time
 from playwright.sync_api import sync_playwright, Cookie, TimeoutError as PlaywrightTimeoutError
+import asyncio
+from typing import Optional
+import random
 
+async def solve_turnstile(page, logger=None):
+    """
+    使用 Playwright 解决 Cloudflare Turnstile 验证
+    Args:
+        page: Playwright page 对象
+        logger: 日志记录器，如果为 None 则使用 print
+    """
+    
+    def log(msg, level="debug"):
+        if logger:
+            if level == "debug":
+                logger.debug(msg)
+            elif level == "info":
+                logger.info(msg)
+        else:
+            print(f"[{level.upper()}] {msg}")
+    
+    def check_element(name, element):
+        if not element:
+            log(f"❌ 元素未找到: {name}", "info")
+            raise Exception(f"Element not found: {name}")
+        log(f"✅ 找到元素: {name}", "debug")
+        return True
+    
+    async def wait_for(min_seconds, max_seconds=None):
+        if max_seconds:
+            wait_time = random.uniform(min_seconds, max_seconds)
+        else:
+            wait_time = min_seconds
+        log(f"等待 {wait_time:.1f} 秒", "debug")
+        await asyncio.sleep(wait_time)
+    
+    async def capture_screenshot(filename="screenshot.png"):
+        try:
+            await page.screenshot(path=filename, full_page=True)
+            log(f"截图保存为: {filename}", "debug")
+        except Exception as e:
+            log(f"截图失败: {str(e)}", "debug")
+    
+    log("等待 Turnstile 验证", "info")
+    
+    # 等待随机时间
+    await wait_for(15, 30)
+    
+    # 查找 iframe - Cloudflare Turnstile iframe 通常有特定的属性
+    try:
+        # 方法1: 查找包含 Cloudflare Turnstile 的 iframe
+        iframe_selector = "iframe[src*='cloudflare'], iframe[title*='Cloudflare'], iframe[title*='challenge']"
+        
+        # 等待 iframe 出现
+        log("查找 Cloudflare Turnstile iframe", "debug")
+        
+        # 等待页面加载完成
+        await page.wait_for_load_state("networkidle")
+        
+        # 查找所有可能的 iframe
+        iframes = await page.query_selector_all("iframe")
+        log(f"找到 {len(iframes)} 个 iframe", "debug")
+        
+        target_iframe = None
+        for iframe in iframes:
+            src = await iframe.get_attribute("src") or ""
+            title = await iframe.get_attribute("title") or ""
+            if "cloudflare" in src.lower() or "cloudflare" in title.lower() or "challenge" in title.lower():
+                target_iframe = iframe
+                log(f"找到目标 iframe: src={src}, title={title}", "debug")
+                break
+        
+        if not target_iframe:
+            # 尝试其他选择器
+            target_iframe = await page.query_selector(iframe_selector)
+        
+        check_element("Cloudflare Turnstile iframe", target_iframe)
+        
+        # 切换到 iframe 上下文
+        frame = await target_iframe.content_frame()
+        check_element("iframe content frame", frame)
+        
+        # 在 iframe 内查找 checkbox
+        # Cloudflare Turnstile 的 checkbox 通常有特定的选择器
+        checkbox_selectors = [
+            'input[type="checkbox"]',
+            '.challenge-container input',
+            '#challenge-stage input',
+            'label input',
+            'div[role="checkbox"]',
+            '[data-testid="cf-challenge-widget"] input'
+        ]
+        
+        checkbox = None
+        for selector in checkbox_selectors:
+            checkbox = await frame.query_selector(selector)
+            if checkbox:
+                log(f"使用选择器找到 checkbox: {selector}", "debug")
+                break
+        
+        # 如果没找到，尝试通过 XPath 查找
+        if not checkbox:
+            checkbox = await frame.query_selector('xpath=//label/input')
+            if checkbox:
+                log("使用 XPath 找到 checkbox", "debug")
+        
+        check_element("Turnstile checkbox", checkbox)
+        
+        # 获取复选框位置和大小
+        box = await checkbox.bounding_box()
+        if box:
+            # 计算点击位置（稍微偏移中心）
+            x = box['x'] + box['width'] / 2 + random.randint(5, 8)
+            y = box['y'] + box['height'] / 2 + random.randint(5, 8)
+            
+            log(f"点击位置: x={x}, y={y}", "debug")
+            
+            # 点击复选框
+            await page.mouse.click(x, y)
+            log("✅ 已点击 Turnstile 验证框", "info")
+        else:
+            # 如果无法获取边界框，直接点击元素
+            await checkbox.click()
+            log("✅ 已直接点击 Turnstile 验证框", "info")
+        
+        # 等待验证完成
+        await wait_for(10, 12)
+        
+        # 检查是否验证成功
+        await wait_for(3, 5)
+        
+        # 尝试截图
+        await capture_screenshot("cf_result.png")
+        
+        log("Turnstile 验证处理完成", "info")
+        return True
+        
+    except Exception as e:
+        log(f"处理 Turnstile 验证时出错: {str(e)}", "info")
+        
+        # 出错时截图
+        try:
+            await capture_screenshot("cf_error.png")
+        except:
+            pass
+        return False
+        
 def add_server_time():
     """
     尝试登录 hub.weirdhost.xyz 并点击 "시간 추가" 按钮。
@@ -13,6 +159,7 @@ def add_server_time():
     pterodactyl_email = os.environ.get('PTERODACTYL_EMAIL')
     pterodactyl_password = os.environ.get('PTERODACTYL_PASSWORD')
     server_url=os.environ.get('WEIRDHOST_SERVER_URLS')
+    chrome_proxy = os.environ.get("CHROME_PROXY")
     
     # 检查是否提供了任何登录凭据
     if not (remember_web_cookie or (pterodactyl_email and pterodactyl_password)):
@@ -21,7 +168,12 @@ def add_server_time():
 
     with sync_playwright() as p:
         # 在 GitHub Actions 中，使用 headless 无头模式运行
-        browser = p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(
+            headless=True,
+            proxy={
+                "server": chrome_proxy
+            }
+        )
         page = browser.new_page()
         # 增加默认超时时间到90秒，以应对网络波动和慢加载
         page.set_default_timeout(90000)
@@ -106,7 +258,11 @@ def add_server_time():
                     page.screenshot(path="server_page_nav_fail.png")
                     browser.close()
                     return False
-
+            success = await solve_turnstile(page)
+                if success:
+                    print("验证成功!")
+                else:
+                    print("验证失败!")
             # --- 核心操作：查找并点击 "시간 추가" 按钮 ---
             add_button_selector = 'button:has-text("시간 추가")' # 已更新为新的按钮文本
             print(f"正在查找并等待 '{add_button_selector}' 按钮...")
