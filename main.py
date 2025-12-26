@@ -198,7 +198,7 @@ def add_server_time():
             )
         )
 
-        page = context.new_page()
+        page = browser.new_page()
         # 增加默认超时时间到90秒，以应对网络波动和慢加载
         page.set_default_timeout(90000)
 
