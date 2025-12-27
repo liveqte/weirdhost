@@ -3,6 +3,19 @@ import time
 from playwright.sync_api import sync_playwright, Cookie, TimeoutError as PlaywrightTimeoutError
 from typing import Optional
 
+def is_valid_proxy(proxy: str) -> bool:
+    """
+    校验代理格式是否合法
+    """
+    if not proxy:
+        return False
+    pattern = re.compile(
+        r'^(http|https|socks4|socks5)://'
+        r'([a-zA-Z0-9.-]+|\d{1,3}(\.\d{1,3}){3})'
+        r':(\d+)$'
+    )
+    return bool(pattern.match(proxy))
+
 def add_server_time():
     """
     尝试登录 hub.weirdhost.xyz 并点击 "시간 추가" 按钮。
