@@ -2,8 +2,8 @@ name: 自动增加服务器时间（Docker版）
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '48 5 * * *'
+  # schedule:
+  #   - cron: '48 5 * * *'
 
 jobs:
   add_time:
