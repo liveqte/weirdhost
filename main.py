@@ -2,6 +2,7 @@ import os
 import time
 from playwright.sync_api import sync_playwright, Cookie, TimeoutError as PlaywrightTimeoutError
 from typing import Optional
+import re
 
 def is_valid_proxy(proxy: str) -> bool:
     """
