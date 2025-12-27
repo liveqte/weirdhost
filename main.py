@@ -41,7 +41,7 @@ def add_server_time():
             raise ValueError(f"代理格式不合法: {chrome_proxy}")
         
         browser = p.chromium.launch(
-            headless=False,
+            headless=True,
             proxy={"server": chrome_proxy}
         )
         
